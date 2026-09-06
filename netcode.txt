@@ -1,0 +1,62 @@
+use std::io::{Read, Write};
+use std::net::{TcpListener, TcpStream};
+use std::env;
+use std::thread;
+
+fn main() {
+    // コマンドライン引数を取得してサーバーかクライアントかを判定
+    let args: Vec<String> = env::args().collect();
+    let mode = args.get(1).map(|s| s.as_str()).unwrap_or("server");
+
+    match mode {
+        "server" => run_server(),
+        "client" => run_client(),
+        _ => println!("利用方法: cargo run -- [server|client]"),
+    }
+}
+
+// === サーバー側処理 ===
+fn run_server() {
+    let listener = TcpListener::bind("127.0.0.1:8080").expect("ポートのバインドに失敗");
+    println!(" [Server] 127.0.0.1:8080 で接続待機中...");
+
+    // 接続を1件だけ受け付ける（デモ用）
+    if let Some(stream) = listener.incoming().next() {
+        match stream {
+            Ok(mut stream) => {
+                println!(" [Server] クライアントが接続しました。");
+                
+                // データの受信
+                let mut buffer = [0; 512];
+                let bytes_read = stream.read(&mut buffer).expect("読み込み失敗");
+                let message = String::from_utf8_lossy(&buffer[..bytes_read]);
+                println!(" [Server] 受信メッセージ: {}", message);
+
+                // 返信の送信
+                let response = "メッセージを受け取りました！";
+                stream.write_all(response.as_bytes()).expect("書き込み失敗");
+                println!(" [Server] 返信を送信しました。");
+            }
+            Err(e) => println!("エラー: {}", e),
+        }
+    }
+}
+
+// === クライアント側処理 ===
+fn run_client() {
+    println!(" [Client] サーバーに接続中...");
+    let mut stream = TcpStream::connect("127.0.0.1:8080").expect("サーバーへの接続に失敗");
+    println!(" [Client] 接続完了。");
+
+    // メッセージの送信
+    let msg = "こんにちは、Rustサーバー！";
+    stream.write_all(msg.as_bytes()).expect("送信失敗");
+    println!(" [Client] 送信メッセージ: {}", msg);
+
+    // サーバーからの返信を受信
+    let mut buffer = [0; 512];
+    let bytes_read = stream.read(&mut buffer).expect("返信の読み込み失敗");
+    let response = String::from_utf8_lossy(&buffer[..bytes_read]);
+    println!(" [Client] サーバーからの返信: {}", response);
+}
+
