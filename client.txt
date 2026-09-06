@@ -1,20 +1,25 @@
-use std::io::{Read, Write};
 use std::net::TcpStream;
+use std::io::{Write};
+use std::env;
 
-fn main() -> std::io::Result<()> {
-    // 【重要】"192.168.x.x" を、サーバー側Ubuntuの実際のIPアドレスに書き換えてください
-    let server_ip = "192.168.x.x:8080"; 
-    
-    let mut stream = TcpStream::connect(server_ip)?;
-    println!("サーバー({}) に接続しました。", server_ip);
+fn main() {
+    // 引数でサーバーIPを指定
+    let args: Vec<String> = env::args().collect();
+    if args.len() < 2 {
+        eprintln!("使い方: client <server_ip>");
+        return;
+    }
 
-    let msg = "Hello from another Ubuntu!";
-    stream.write_all(msg.as_bytes())?;
+    let server_ip = &args[1];
+    let addr = format!("{}:5000", server_ip);
 
-    let mut buffer = [0; 512];
-    let bytes_read = stream.read(&mut buffer)?;
-    println!("サーバーからの応答: {}", String::from_utf8_lossy(&buffer[..bytes_read]));
+    println!("接続中: {}", addr);
 
-    Ok(())
+    let mut stream = TcpStream::connect(&addr).expect("接続失敗");
+
+    let msg = "こんにちは、サーバー！";
+    stream.write_all(msg.as_bytes()).expect("送信失敗");
+
+    println!("送信完了");
 }
 
